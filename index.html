@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>KV 文件管理</title>
+<style>
+body{font-family:sans-serif;margin:20px}input,button{margin:5px}#log{margin-top:10px;color:green}
+progress{width:100%;margin-top:5px}
+</style>
+</head>
+<body>
+<h2>上传文件</h2>
+<input type="file" id="file">
+<button onclick="upload()">上传</button>
+<progress id="progress" value="0" max="100"></progress>
+
+<h2>下载文件</h2>
+<input type="text" id="dkey" placeholder="文件名">
+<button onclick="download()">下载</button>
+
+<h2>删除文件</h2>
+<input type="text" id="delkey" placeholder="文件名">
+<button onclick="del()">删除</button>
+
+<div id="log"></div>
+
+<script>
+const base = '你的Worker URL'; // 替换为你的 Worker URL
+
+async function upload() {
+  const f = document.getElementById('file').files[0];
+  if(!f){alert('请选择文件'); return;}
+  const reader = new FileReader();
+  const progressBar = document.getElementById('progress');
+  reader.onprogress = e => {
+    if(e.lengthComputable) progressBar.value = (e.loaded/e.total)*100;
+  }
+  reader.onloadend = async e => {
+    const r = await fetch(base+'/upload/'+f.name, {method:'PUT', body:e.target.result});
+    document.getElementById('log').innerText = await r.text();
+    progressBar.value = 0;
+  }
+  reader.readAsArrayBuffer(f);
+}
+
+async function download() {
+  const k = document.getElementById('dkey').value;
+  const r = await fetch(base+'/download/'+k);
+  if(r.status==200){
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = k;
+    a.click();
+    document.getElementById('log').innerText = '下载成功';
+  } else document.getElementById('log').innerText = '文件不存在';
+}
+
+async function del() {
+  const k = document.getElementById('delkey').value;
+  const r = await fetch(base+'/delete/'+k, {method:'DELETE'});
+  document.getElementById('log').innerText = await r.text();
+}
+</script>
+</body>
+</html>
